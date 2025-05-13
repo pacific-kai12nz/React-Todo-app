@@ -5,11 +5,15 @@ type Todo ={
   value: string;
   readonly id: number;
   checked: boolean;
+  removed: boolean;
 };
+
+type Filter = 'all' | 'checked' | 'unchecked' | 'removed';
 
 export const App = () => {
   const [text, setText] = useState('');
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [filter, setFilter] =useState<Filter>('all');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setText(e.target.value);
@@ -22,6 +26,7 @@ export const App = () => {
       value: text,
       id: new Date().getTime(),
       checked: false,
+      removed: false,
     };
 
     setTodos((todos) => [newTodo, ...todos]);
@@ -29,7 +34,7 @@ export const App = () => {
   }
 
   const handleEdit = (id:number, value:string) => {
-      setTodos((todo) => {
+      setTodos((todos) => {
         const newTodos = todos.map((todo) => {
           if (todo.id === id){
             return {...todo, value: value};
@@ -39,32 +44,73 @@ export const App = () => {
         return newTodos;
       });
 };
+ const handleRemove = (id: number, removed: boolean) => {
+  setTodos((todos) => {
+    const newTodos = todos.map((todo) => {
+      if(todo.id === id) {
+        return {...todo, removed};
+      }
+      return todo;
+    });
+    return newTodos;
+  });
+ };
+
+ const handlerFilter = (filter : Filter) => {
+  setFilter(filter);
+ };
+
+ const filteredTodos = todos.filter((todo) => {
+  switch (filter) {
+    case 'all':
+      return !todo.removed;
+      case 'checked':
+        return todo.checked && !todo.removed;
+        case 'unchecked':
+          return !todo.checked && !todo.removed;
+          case 'removed':
+            return todo.removed;
+            default:
+              return todo;
+  }
+ });
 
   return (
     <div>
+      <select defaultValue="all" onChange={(e) => handlerFilter(e.target.value as Filter)}>
+        <option value="all">全てのタスク</option>
+        <option value="checked">完了したタスク</option>
+        <option value="unchecked">現在のタスク</option>
+        <option value="removed">ゴミ箱</option>
+      </select>
       <form onSubmit={(e) => e.preventDefault()}>
         <input 
         type='text'
         value={text}
+        disabled={filter === 'checked' || filter === 're'}
         onChange={(e) => setText(e.target.value)}
         />
         <input type="submit" value={text} onChange={(e) => handleChange(e)} />
         <input type='submit' value="追加" onSubmit={handleSubmit} />
       </form>
       <ul>
-        {todos.map((todo) => {
+        {filteredTodos.map((todo) => {
           return (
             <li key={todo.id}>
               <input 
               type='checkbox'
               checked={todo.checked}
-              onChange={() => console.log('Checked!')}
+              onChange={() => handleCheck(todo.id, todo.checked)}
               />
             <input
             type='text'
+            disabled={todo.checked}
             value={todo.value}
             onChange={(e) => handleEdit(todo.id, e.target.value)}
             />
+            <button onClick={() => console.log('removed!')}>
+              {todo.removed ? '復元' : '削除'}
+            </button>
             </li>
           );
         })}
